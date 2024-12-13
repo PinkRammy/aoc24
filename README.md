@@ -1,6 +1,5 @@
 # Advent of Code 2024
-
+https://adventofcode.com/2024
 ```
-gcc <cppfile> -lstdc++ -Wall -o <exe>
-./<exe> <day>.input
+gcc <day_cppfile> -lstdc++ -Wall -o <bin> && ./<bin> <day>.input
 ```
