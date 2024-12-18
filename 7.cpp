@@ -5,13 +5,13 @@
 #include <sstream>
 #include <vector>
 
-bool canComputeTwo(const __int128& result, const __int128& op1, const __int128& op2) {
-  int sum = op1 + op2;
+bool canComputeTwo(const long long& result, const int& op1, const int& op2) {
+  long long sum = op1 + op2;
   if (sum == result) {
     return true;
   }
 
-  int mul = op1 * op2;
+  long long mul = op1 * op2;
   return mul == result;
 }
 
