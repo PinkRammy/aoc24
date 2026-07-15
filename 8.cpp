@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <set>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -12,13 +13,43 @@ struct Point {
   Point(int x, int y): x(x), y(y) { }
 };
 
+struct PointComparator {
+  bool operator()(const Point& a, const Point& b) const {
+    return std::tie(a.x, a.y) < std::tie(b.x, b.y);
+  }
+};
+
 struct Antenna {
   char frequency;
   Point coords;
 
   Antenna(): frequency(0), coords({0, 0}) { }
   Antenna(char freq, Point coords): frequency(freq), coords(coords) { }
-  Antenna(char freq, int x, int y): frequency(freq), coords({x, y}) { } 
+  Antenna(char freq, int x, int y): frequency(freq), coords({x, y}) { }
+
+  std::string toString() const {
+    return std::string(1, frequency) + " (x: " + std::to_string(coords.x) + ", y: " + std::to_string(coords.y) + ")";
+  }
+};
+
+struct AntennaPair {
+  const Antenna* antenna1;
+  const Antenna* antenna2;
+
+  std::pair<const Point, const Point> getAntinodes() const {
+    int dx = antenna2->coords.x - antenna1->coords.x;
+    int dy = antenna2->coords.y - antenna1->coords.y;
+    
+    Point antinode1(antenna1->coords.x - dx, antenna1->coords.y - dy);
+    Point antinode2(antenna2->coords.x + dx, antenna2->coords.y + dy);
+    return {antinode1, antinode2};
+  }
+};
+struct AntennaPairComparator {
+  bool operator()(const AntennaPair& a, const AntennaPair& b) const {
+    return std::tie(a.antenna1->frequency, a.antenna1->coords.x, a.antenna1->coords.y, a.antenna2->coords.x, a.antenna2->coords.y) <
+           std::tie(b.antenna1->frequency, b.antenna1->coords.x, b.antenna1->coords.y, b.antenna2->coords.x, b.antenna2->coords.y);
+  }
 };
 
 std::unordered_map<char, std::vector<Antenna>> antennasByFrequency;
@@ -26,8 +57,12 @@ std::unordered_map<char, std::vector<Antenna>> antennasByFrequency;
 int maxX = 0;
 int maxY = 0;
 
-bool isWithinBounds(int x, int y) {
+bool isOutOfBounds(int x, int y) {
   return x < 0 || y < 0 || x >= maxX || y >= maxY;
+}
+
+bool isOutOfBounds(const Point& p) {
+  return isOutOfBounds(p.x, p.y);
 }
 
 int distanceBetween(Point a, Point b) {
@@ -72,24 +107,30 @@ int main(int argc, char** argv) {
       maxY++;
     }
 
-    // get antinodes
-    Antenna lastAntenna;
+    // get antenna pairs
+    std::set<AntennaPair, AntennaPairComparator> antennaPairs;
     for (const auto& item : antennasByFrequency) {
-      for (const Antenna& antenna : item.second) {
-        if (lastAntenna.frequency == 0) {
-          lastAntenna = antenna;
-          continue;
+      for (size_t i = 0; i < item.second.size(); i++) {
+        for (size_t j = i + 1; j < item.second.size(); j++) {
+          AntennaPair pair { &item.second[i], &item.second[j] };
+          antennaPairs.insert(pair);
         }
-
-        if (lastAntenna.frequency != antenna.frequency) {
-          continue;
-        }
-
-        int distance = distanceBetween(antenna.coords, lastAntenna.coords);
-        std::cout << "Distance between Antenna " << lastAntenna.frequency << " (x: " << lastAntenna.coords.x << ", y: " << lastAntenna.coords.y << ") and Antenna " << antenna.frequency << " (x: " << antenna.coords.x << ", y: " << antenna.coords.y << "): " << distance << std::endl;
       }
     }
 
+    // get antinodes
+    std::set<Point, PointComparator> antinodes;
+    for (const auto& antennaPair : antennaPairs) {
+      std::pair<const Point, const Point> antinodePair = antennaPair.getAntinodes();
+      if (!isOutOfBounds(antinodePair.first.x, antinodePair.first.y)) {
+        antinodes.insert(antinodePair.first);
+      }
+      if (!isOutOfBounds(antinodePair.second.x, antinodePair.second.y)) {
+        antinodes.insert(antinodePair.second);
+      }
+    }
+
+    sum = antinodes.size();
     std::cout << sum << std::endl;
   }
 
